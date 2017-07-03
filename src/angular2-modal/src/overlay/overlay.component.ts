@@ -7,15 +7,16 @@ import {
   EmbeddedViewRef,
   Injector,
   ReflectiveInjector,
+  Renderer,
   ResolvedReflectiveProvider,
+  TemplateRef,
+  Type,
   ViewChild,
   ViewContainerRef,
   ViewEncapsulation,
-  Renderer,
-  TemplateRef,
-  Type
 } from '@angular/core';
-
+import { Router, NavigationEnd } from '@angular/router';
+import { Subscription } from 'rxjs/Rx';
 import { PromiseCompleter, supportsKey } from '../framework/utils';
 import { DialogRef } from '../models/dialog-ref';
 import { BaseDynamicComponent } from '../components/index';
@@ -42,15 +43,26 @@ export interface EmbedComponentConfig {
   templateUrl: './overlay.component.html'
 })
 export class ModalOverlay extends BaseDynamicComponent {
+  private routerSubscription: Subscription;
   private beforeDestroyHandlers: Array<() => Promise<void>>;
   @ViewChild('innerView', {read: ViewContainerRef}) public innerVcr: ViewContainerRef;
   @ViewChild('template') public template: TemplateRef<any>;
 
   constructor(private dialogRef: DialogRef<any>,
               private vcr: ViewContainerRef,
+              private router: Router,
               el: ElementRef,
               renderer: Renderer) {
     super(el, renderer);
+    if (!this.routerSubscription) {
+      this.routerSubscription = this.router.events.subscribe((routerEvent) => {
+        if (routerEvent instanceof NavigationEnd) {
+          if ((<NavigationEnd> routerEvent).urlAfterRedirects.includes('login')) {
+            this.ngOnDestroy();
+          }
+        }
+      });
+    }
     this.activateAnimationListener();
   }
 
@@ -232,6 +244,10 @@ export class ModalOverlay extends BaseDynamicComponent {
 
   ngOnDestroy(): void {
     super.ngOnDestroy();
+    if (this.routerSubscription) {
+      this.routerSubscription.unsubscribe();
+      delete this.routerSubscription;
+    }
     if (this.dialogRef.destroyed !== true) {
       // if we're here the overlay is destroyed by an external event that is not user invoked.
       // i.e: The user did no call dismiss or close and dialogRef.destroy() did not invoke.

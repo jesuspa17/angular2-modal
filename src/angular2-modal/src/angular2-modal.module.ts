@@ -11,6 +11,7 @@ import {
   OverlayDialogBoundary,
   OverlayTarget
 } from './overlay/index';
+import { RouterModule } from '@angular/router';
 
 @NgModule({
   declarations: [
@@ -20,7 +21,7 @@ import {
     OverlayDialogBoundary,
     OverlayTarget
   ],
-  imports: [ CommonModule ],
+  imports: [ CommonModule, RouterModule],
   exports: [
     CSSBackdrop,
     CSSDialogContainer,
